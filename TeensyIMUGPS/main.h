@@ -15,6 +15,7 @@
 #include <utility/imumaths.h>
 #include <Adafruit_GPS.h>
 #include <XBee.h>
+#include <EEPROM.h>
 #include "float32byte.h"
 #include "RGBLED.h"
 #include "artlab.h"

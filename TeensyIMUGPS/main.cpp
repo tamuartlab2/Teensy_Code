@@ -30,6 +30,9 @@ uint8_t WD = 0;
 float degreeToRadian = 71 / 4068.0;
 unsigned long time_k1;
 unsigned long time_k;
+adafruit_bno055_offsets_t bno_calibrationData = {-1,-1,-1,-1,0,0,0,51,12,1000,52};
+int eeAddress = 0;
+uint8_t writing_EEPROM = 0;
 
 imu::Quaternion quat;
 // sensors_event_t orientationData, angVelocityData, linearAccelData; //, magnetometerData, accelerometerData, gravityData;
@@ -65,6 +68,8 @@ void setup()
         LEDR = 0;
         LEDG = 255;
         RGBLED1.setColor(LEDR, LEDG, LEDB); //green color
+        EEPROM.get(eeAddress, bno_calibrationData);
+        bno.setSensorOffsets(bno_calibrationData);
     }
     delay(100);
     //bno.setExtCrystalUse(true);
@@ -92,6 +97,7 @@ void loop()
                 LED_blink_status = 1;
                 RGBLED1.setColor(0, 0, 0);
             }
+            // bno.setSensorOffsets(bno_calibrationData);
         }
         else
         {
@@ -123,6 +129,12 @@ void loop()
             Tx16Request tx = Tx16Request(0xFFFF, xbeePayloadTX, sizeof(xbeePayloadTX));
             xbee.send(tx);
             //Serial.println("sent");
+        }
+        //bno055 local calibration cmd
+        else if (CMDData == 0x04)
+        {
+            EEPROM.get(eeAddress, bno_calibrationData);
+            bno.setSensorOffsets(bno_calibrationData);
         }
     }
     adafruitGPS();
@@ -218,7 +230,8 @@ void bnoIMU()
             imuCheck = 1; 
             LEDR = 0;
             LEDG = 255;
-            
+            EEPROM.get(eeAddress, bno_calibrationData);
+            bno.setSensorOffsets(bno_calibrationData);
         }
         delay(100);
     }
@@ -232,6 +245,20 @@ void bnoIMU()
     // bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
 
     bno.getCalibration(&sys, &gyro, &accel, &magn);
+    // Serial.print("sys:");
+    // Serial.println(sys);
+    // Serial.print("gyro:");
+    // Serial.println(gyro);
+    // Serial.print("accel:");
+    // Serial.println(accel);
+
+    if (bno.isFullyCalibrated() && writing_EEPROM == 0)
+    {
+        bno.getSensorOffsets(bno_calibrationData);
+        EEPROM.put(eeAddress, bno_calibrationData);
+        writing_EEPROM = 1;
+        // Serial.println("Save calibration to the EEPROM.");
+    }
 
     if (sys == 0 || gyro == 0)
     {
