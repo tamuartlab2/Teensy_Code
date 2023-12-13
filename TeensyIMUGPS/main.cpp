@@ -2,7 +2,7 @@
 	Name: main.cpp
 	Created: 11/28/2021
 	Author:	Yuan Wei
-	Last Modified: 6/6/2023 by Yuan Wei
+	Last Modified: 12/7/2023 by Yuan Wei
 */
 
 #include "main.h"
@@ -255,7 +255,21 @@ void bnoIMU()
     if (bno.isFullyCalibrated() && writing_EEPROM == 0)
     {
         bno.getSensorOffsets(bno_calibrationData);
-        EEPROM.put(eeAddress, bno_calibrationData);
+        adafruit_bno055_offsets_t check_bno_calibrationData;
+        EEPROM.get(eeAddress, check_bno_calibrationData);
+
+        //Protect EEPROM
+        if ( (bno_calibrationData.mag_offset_x != check_bno_calibrationData.mag_offset_x) 
+          || (bno_calibrationData.mag_offset_y != check_bno_calibrationData.mag_offset_y) 
+          || (bno_calibrationData.mag_offset_z != check_bno_calibrationData.mag_offset_z))
+        {
+            EEPROM.put(eeAddress, bno_calibrationData);
+        }
+
+        // else
+        // {
+        //     Serial.println("The stored data are the same as the new data! ");
+        // }
         writing_EEPROM = 1;
         // Serial.println("Save calibration to the EEPROM.");
     }
@@ -312,16 +326,16 @@ void sendMSG()
         u_int8_t gpsLatitudeByte[8], gpsLongitudeByte[8];
         double2Byte(gpsLatitude, gpsLatitudeByte);
         double2Byte(gpsLongitude, gpsLongitudeByte);
-         Serial.write(2);
-         Serial.write(GPSFix);
-         for (uint8_t i = 0; i < 8; i++)
-         {
-             Serial.write(gpsLatitudeByte[i]);
-         }
-         for (uint8_t i = 0; i < 8; i++)
-         {
-             Serial.write(gpsLongitudeByte[i]);
-         }
+        Serial.write(2);
+        Serial.write(GPSFix);
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            Serial.write(gpsLatitudeByte[i]);
+        }
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            Serial.write(gpsLongitudeByte[i]);
+        }
          
     }
     num++;
